@@ -124,7 +124,8 @@ int main(int argc, char* argv[])
 
 	// start capturing packets. All packets will be added to the packet vector
     std::string newDBLine;
-    
+    std::string prev;
+
     std::string kLines;
 
 	dev->startCapture(packetVec);
@@ -138,10 +139,20 @@ int main(int argc, char* argv[])
             // feed packet to the stats object
             stats.consumePacket(parsedPacket);
         }
+        int ctr = 0;
         std::ifstream oDB("../db.json");
         std::ofstream nDB("../nDB.json");
         //for testing
-        newDBLine = "\t\t{ \"time\": " + std::to_string(time+=1000) + ", \"UDP\": " + std::to_string(stats.udpPacketCount) + ", \"TCP\": " + std::to_string(stats.tcpPacketCount) + ", \"ICMP\": 5}";
+        newDBLine = "\t\t{ \"time\": " + std::to_string(time+=1000) + 
+            ", \"ETH\": " + std::to_string(stats.ethPacketCount) +
+            ", \"IPV4\": " + std::to_string(stats.ipv4PacketCount) +
+            ", \"IPV6\": " + std::to_string(stats.ipv6PacketCount) +
+            ", \"UDP\": " + std::to_string(stats.udpPacketCount) + 
+            ", \"TCP\": " + std::to_string(stats.tcpPacketCount) + 
+            ", \"DNS\": " + std::to_string(stats.dnsPacketCount) + 
+            ", \"HTTP\": " + std::to_string(stats.httpPacketCount) + 
+            ", \"SSL\": " + std::to_string(stats.sslPacketCount) + 
+            "}";
         while(getline(oDB, kLines)){
             std::cout<<"got: "<<kLines<<"\n";
             // if(kLines.find_first_of('{') != std::string::npos && kLines.length() > 1){
@@ -157,10 +168,28 @@ int main(int argc, char* argv[])
                 std::cout<<"appended : " << newDBLine << "\n";
             }
             nDB<<kLines<<"\n";
+            ctr++;
+            
+            
         }
+
         oDB.close();
         nDB.close();
-
+        if(ctr > 8 ){//clear both
+            std::fstream clearBoth;
+            clearBoth.open("../db.json", std::ios::out | std::ios::trunc);
+            clearBoth.close();
+            clearBoth.open("../nDB.json", std::ios::out | std::ios::trunc);
+            clearBoth<<"{\n"
+                <<"  \"PacketStats\": [\n"
+                <<prev<<",\n"
+                <<newDBLine<<"\n"
+                <<"	  ]\n"
+                <<"}";
+            clearBoth.close();
+        }
+        prev = newDBLine;
+        ctr=0;
         std::remove("../db.json");
         std::rename("../nDB.json", "../db.json");
 

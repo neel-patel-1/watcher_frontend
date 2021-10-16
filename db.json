@@ -1,13 +1,9 @@
 {
   "PacketStats": [
-	  { "time": 1900, "UDP": 1, "TCP": 1, "ICMP": 1},
-	  { "time": 2000, "UDP": 2, "TCP": 2, "ICMP": 2},
-		{ "time": 3000, "UDP": 0, "TCP": 100, "ICMP": 5},
-		{ "time": 4000, "UDP": 0, "TCP": 279, "ICMP": 5},
-		{ "time": 5000, "UDP": 0, "TCP": 534, "ICMP": 5},
-		{ "time": 6000, "UDP": 0, "TCP": 866, "ICMP": 5},
-		{ "time": 7000, "UDP": 0, "TCP": 1280, "ICMP": 5},
-		{ "time": 8000, "UDP": 0, "TCP": 1776, "ICMP": 5},
-		{ "time": 9000, "UDP": 0, "TCP": 2351, "ICMP": 5}
+		{ "time": 21000, "ETH": 17810, "IPV4": 17810, "IPV6": 0, "UDP": 220, "TCP": 17590, "DNS": 220, "HTTP": 0, "SSL": 403},
+		{ "time": 22000, "ETH": 19558, "IPV4": 19558, "IPV6": 0, "UDP": 232, "TCP": 19326, "DNS": 232, "HTTP": 0, "SSL": 425},
+		{ "time": 23000, "ETH": 21379, "IPV4": 21379, "IPV6": 0, "UDP": 244, "TCP": 21135, "DNS": 244, "HTTP": 0, "SSL": 447},
+		{ "time": 24000, "ETH": 23272, "IPV4": 23272, "IPV6": 0, "UDP": 256, "TCP": 23016, "DNS": 256, "HTTP": 0, "SSL": 469},
+		{ "time": 25000, "ETH": 25240, "IPV4": 25240, "IPV6": 0, "UDP": 268, "TCP": 24972, "DNS": 268, "HTTP": 0, "SSL": 491}
 	  ]
 }
