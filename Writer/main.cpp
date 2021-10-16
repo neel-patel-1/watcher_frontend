@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
 
         oDB.close();
         nDB.close();
-        if(ctr > 8 ){//clear both
+        if(ctr > 20 ){//clear both
             std::fstream clearBoth;
             clearBoth.open("../db.json", std::ios::out | std::ios::trunc);
             clearBoth.close();
