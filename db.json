@@ -1,6 +1,13 @@
 {
   "PacketStats": [
 	  { "time": 1900, "UDP": 1, "TCP": 1, "ICMP": 1},
-	  { "time": 2000, "UDP": 2, "TCP": 2, "ICMP": 2}
+	  { "time": 2000, "UDP": 2, "TCP": 2, "ICMP": 2},
+		{ "time": 3000, "UDP": 0, "TCP": 100, "ICMP": 5},
+		{ "time": 4000, "UDP": 0, "TCP": 279, "ICMP": 5},
+		{ "time": 5000, "UDP": 0, "TCP": 534, "ICMP": 5},
+		{ "time": 6000, "UDP": 0, "TCP": 866, "ICMP": 5},
+		{ "time": 7000, "UDP": 0, "TCP": 1280, "ICMP": 5},
+		{ "time": 8000, "UDP": 0, "TCP": 1776, "ICMP": 5},
+		{ "time": 9000, "UDP": 0, "TCP": 2351, "ICMP": 5}
 	  ]
 }

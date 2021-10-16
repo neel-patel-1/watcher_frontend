@@ -1,0 +1,6 @@
+{
+  "PacketStats": [
+	  { "time": 1900, "UDP": 1, "TCP": 1, "ICMP": 1},
+	  { "time": 2000, "UDP": 2, "TCP": 2, "ICMP": 2}
+	  ]
+}
