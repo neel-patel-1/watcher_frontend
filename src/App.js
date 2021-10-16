@@ -1,8 +1,8 @@
 import logo from './logo.svg';
 import './App.css';
-import Charts from './Chart'
 import { LineChart, XAxis, YAxis, Tooltip, CartesianGrid, Line } from 'recharts';
-
+import { ProSidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
+import 'react-pro-sidebar/dist/css/styles.css';
 import {React, ReactDOM, useState, useEffect} from 'react'
 // const data = [
 //   { time: '21:20', TCP: 100, UDP: 100, ICMP: 400 },
@@ -17,7 +17,7 @@ function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:5000/packet_stats")
+    fetch("http://localhost:5000/PacketStats")
       .then(res => res.json())
       .then(
         (result) => {
@@ -39,18 +39,35 @@ function App() {
   else {
     return (
       <div className="App">
-        <header className="App-header">
+        
+        <header className="App-header" style={{    display: "grid",  
+    gridTemplateColumns: "1fr 2fr"}}>
+        
+        <div>
+        <ProSidebar >
+          <Menu iconShape="square">
+            <MenuItem >Dashboard</MenuItem>
+            <SubMenu title="Components" >
+              <MenuItem>Component 1</MenuItem>
+              <MenuItem>Component 2</MenuItem>
+            </SubMenu>
+          </Menu>
+        </ProSidebar >
+        </div>
+        <div style={{}}>
         <LineChart width={500} height={300} data={stats}>
         <XAxis dataKey="time"/>
-        <Line type="monotone" dataKey="ICMP" stroke="#387908" yAxisId={2} />
+        <YAxis/>
+        <Line type="monotone" dataKey="ICMP" stroke="#387908" />
         <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
         <Line type="monotone" dataKey="TCP" stroke="#8884d8" />
         <Line type="monotone" dataKey="UDP" stroke="#82ca9d" />
+        <Tooltip />
         </LineChart>
-
+        </div>
         
-        </header>
-      </div>
+</header>
+        </div>
     );
   }
 }

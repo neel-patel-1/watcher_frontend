@@ -4,10 +4,15 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { ProSidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
+import 'react-pro-sidebar/dist/css/styles.css';
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <div>
+    
+  </div>
+    <App></App>
   </React.StrictMode>,
   document.getElementById('root')
 );
