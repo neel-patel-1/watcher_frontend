@@ -13,7 +13,7 @@ OBJS_FILENAMES := $(patsubst %.cpp,Obj/%.o,$(SOURCES))
 
 Obj/%.o: %.cpp
 	@echo Building file: $<
-	@$(CXX) $(PCAPPP_BUILD_FLAGS) -c $(PCAPPP_INCLUDES) -fmessage-length=0 -MMD -MP -MF"$(@:Obj/%.o=Obj/%.d)" -MT"$(@:Obj/%.o=Obj/%.d)" -o "$@" "$<"
+	@$(CXX) $(PCAPPP_BUILD_FLAGS) -c $(PCAPPP_INCLUDES) -fmessage-length=0 -MMD -MP -MF"$(@:Obj/%.o=Obj/%.d)" -MT"$(@:Obj/%.o=Obj/%.d)" -o "$@" "$<" 
 
 UNAME := $(shell uname)
 CUR_TARGET := $(notdir $(shell pwd))
@@ -22,12 +22,13 @@ CUR_TARGET := $(notdir $(shell pwd))
 
 .PHONY: test
 
+
+all: dependents Writer
+
 test: all
 	sudo touch ../db.json
 	sudo cp ../db_copy.json ../db.json
 	sudo ./Bin/Writer 
-
-all: dependents Writer
 
 start:
 	@echo ==== Building target: $(CUR_TARGET) ====
@@ -40,7 +41,7 @@ dependents:
 	@cd $(PCAPPLUSPLUS_HOME) && $(MAKE) libs
 
 Writer: start create-directories $(OBJS_FILENAMES)
-	@$(CXX) $(PCAPPP_BUILD_FLAGS) $(PCAPPP_LIBS_DIR) -o "./Bin/Writer$(BIN_EXT)" $(OBJS_FILENAMES) $(PCAPPP_LIBS)
+	@$(CXX) $(PCAPPP_BUILD_FLAGS) $(PCAPPP_LIBS_DIR) -o "./Bin/Writer$(BIN_EXT)" $(OBJS_FILENAMES) $(PCAPPP_LIBS) -lcrypto -lssl
 	@$(PCAPPP_POST_BUILD)
 	@echo Finished successfully building: $(CUR_TARGET)
 	@echo ' '
