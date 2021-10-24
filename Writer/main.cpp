@@ -99,7 +99,6 @@ std::string getListenIp()
 }
 
 vector<vector<pair<string, int>>> protStatsList;
-
 void handle_get(http_request request)
 {
    TRACE(L"\nhandle GET\n");
@@ -115,6 +114,7 @@ void handle_get(http_request request)
        timeSeries["PacketStats"][time[7].first] = json::value::number(time[7].second);
        timeSeries["PacketStats"][time[8].first] = json::value::number(time[8].second);
    }
+   cout<<timeSeries.serialize()<<endl;
    request.reply(status_codes::OK, timeSeries);
 }
 
