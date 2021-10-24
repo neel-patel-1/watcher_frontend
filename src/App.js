@@ -17,7 +17,7 @@ function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    setInterval( async () => {fetch("http://172.18.177.104:5000/PacketStats")
+    setInterval( async () => {fetch("http://localhost:5000/PacketStats")
       .then(res => res.json())
       .then(
         (result) => {

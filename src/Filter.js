@@ -1,4 +1,3 @@
-import { FrameGrid } from "@egjs/grid";
 
 function Filter() {
     return(
