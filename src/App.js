@@ -1,7 +1,8 @@
 import logo from './logo.svg';
 import './App.css';
-import { LineChart, AreaChart, XAxis, YAxis, Tooltip, CartesianGrid, Line, Area } from 'recharts';
+
 import Filter from './Filter'
+import PackData from './PackData'
 import {React, ReactDOM, useState, useEffect} from 'react'
 // const data = [
 //   { time: '21:20', TCP: 100, UDP: 100, ICMP: 400 },
@@ -16,7 +17,7 @@ function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    setInterval( async () => {fetch("http://localhost:5000/PacketStats")
+    setInterval( async () => {fetch("http://172.18.177.104:5000/PacketStats")
       .then(res => res.json())
       .then(
         (result) => {
@@ -31,12 +32,19 @@ function App() {
     },5000)
   }, [])
 
-
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  } else if (!isLoaded) {
+    return <div>Loading...</div>;
+  }
+  else {
     return (
       <header class="App-header">
+        <PackData stats={stats}/>
         <Filter></Filter>
       </header>
     );
+  }
   
 }
 

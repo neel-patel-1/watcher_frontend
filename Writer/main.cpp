@@ -14,23 +14,44 @@
 #include <string>
 #include <fstream>
 
-#include <cpprest/http_client.h>
-#include <cpprest/filestream.h>
-
 #include <cpprest/http_listener.h>              // HTTP server
 #include <cpprest/json.h>                       // JSON library
 #include <cpprest/uri.h>                        // URI library
 #include <cpprest/ws_client.h>                  // WebSocket client
+#include <cpprest/asyncrt_utils.h>              // Async helpers
 #include <cpprest/containerstream.h>            // Async streams backed by STL containers
 #include <cpprest/interopstream.h>              // Bridges for integrating Async streams with STL and WinRT streams
 #include <cpprest/rawptrstream.h>               // Async streams backed by raw pointer to memory
 #include <cpprest/producerconsumerstream.h>     // Async streams for producer consumer scenarios
+#include <cpprest/filestream.h>
 
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <sstream>
+#include <iostream>
+#include <fstream>
+#include <random>
+
+#pragma warning ( push )
+#pragma warning ( disable : 4457 )
+#pragma warning ( pop )
+#include <locale>
+#include <ctime>
+#include <vector>
 /*
 *Listens on eth0 for a given interval 
-*writes traffic stats to db.json file
+*Stores packet data in PacketStats Structure
 */
+using namespace std;
+using namespace web;
+using namespace http;
+using namespace utility;
+using namespace http::experimental::listener;
 
+#define TRACE(msg)            wcout << msg
+#define TRACE_ACTION(a, k, v) wcout << a << L" (" << k << L", " << v << L")\n"
+using namespace std;
 struct PacketStats
 {
     int ethPacketCount;
@@ -41,20 +62,8 @@ struct PacketStats
     int dnsPacketCount;
     int httpPacketCount;
     int sslPacketCount;
-
-    /**
-    * Clear all stats
-    */
     void clear() { ethPacketCount = 0; ipv4PacketCount = 0; ipv6PacketCount = 0; tcpPacketCount = 0; udpPacketCount = 0; tcpPacketCount = 0; dnsPacketCount = 0; httpPacketCount = 0; sslPacketCount = 0; }
-
-    /**
-    * C'tor
-    */
     PacketStats() { clear(); }
-
-    /**
-    * Collect stats from a packet
-    */
     void consumePacket(pcpp::Packet& packet)
     {
         if (packet.isPacketOfType(pcpp::Ethernet))
@@ -74,42 +83,66 @@ struct PacketStats
         if (packet.isPacketOfType(pcpp::SSL))
             sslPacketCount++;
     }
-
-    /**
-    * Print stats to console
-    */
-    void printToConsole()
-    {
-        std::cout
-            << "Ethernet packet count: " << ethPacketCount << std::endl
-            << "IPv4 packet count:     " << ipv4PacketCount << std::endl
-            << "IPv6 packet count:     " << ipv6PacketCount << std::endl
-            << "TCP packet count:      " << tcpPacketCount << std::endl
-            << "UDP packet count:      " << udpPacketCount << std::endl
-            << "DNS packet count:      " << dnsPacketCount << std::endl
-            << "HTTP packet count:     " << httpPacketCount << std::endl
-            << "SSL packet count:      " << sslPacketCount << std::endl;
-    }
 };
 std::string getListenIp()
 {
     int fd;
     struct ifreq ifr;
-	    fd = socket(AF_INET, SOCK_DGRAM, 0);
-        ifr.ifr_addr.sa_family = AF_INET;
-        strncpy(ifr.ifr_name, "eth0", IFNAMSIZ-1);
-        ioctl(fd, SIOCGIFADDR, &ifr);
-        close(fd);
-        std::string ip_addr = std::string(inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
-        std::cout<<"interface ip: "<<ip_addr<<std::endl;
-        return ip_addr;
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    ifr.ifr_addr.sa_family = AF_INET;
+    strncpy(ifr.ifr_name, "eth0", IFNAMSIZ-1);
+    ioctl(fd, SIOCGIFADDR, &ifr);
+    close(fd);
+    std::string ip_addr = std::string(inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
+    std::cout<<"interface ip: "<<ip_addr<<std::endl;
+    return ip_addr;
 }
+
+vector<vector<pair<string, int>>> protStatsList;
+
+void handle_get(http_request request)
+{
+   TRACE(L"\nhandle GET\n");
+   json::value timeSeries;
+   for (auto time : protStatsList){
+       timeSeries["PacketStats"][time[0].first] = json::value::number(time[0].second);
+       timeSeries["PacketStats"][time[1].first] = json::value::number(time[1].second);
+       timeSeries["PacketStats"][time[2].first] = json::value::number(time[2].second);
+       timeSeries["PacketStats"][time[3].first] = json::value::number(time[3].second);
+       timeSeries["PacketStats"][time[4].first] = json::value::number(time[4].second);
+       timeSeries["PacketStats"][time[5].first] = json::value::number(time[5].second);
+       timeSeries["PacketStats"][time[6].first] = json::value::number(time[6].second);
+       timeSeries["PacketStats"][time[7].first] = json::value::number(time[7].second);
+       timeSeries["PacketStats"][time[8].first] = json::value::number(time[8].second);
+   }
+   request.reply(status_codes::OK, timeSeries);
+}
+
 int main(int argc, char* argv[])
 {
+    
+
+    /*front end request listener*/
+    http_listener listener("http://localhost:5000");
+    listener.support(methods::GET, handle_get);
+
+    try
+    {
+        listener
+            .open()
+            .then([&listener](){TRACE(L"\nstarting to listen\n");})
+            .wait();
+
+        while (true);
+    }
+    catch (exception const & e)
+    {
+        wcout << e.what() << endl;
+    }
+
+    /*Pcap device thread*/
     std::string interfaceIPAddr = getListenIp();
 	PacketStats stats;
-    int time = 2000;
-    
 
 	pcpp::PcapLiveDevice* dev = pcpp::PcapLiveDeviceList::getInstance().getPcapLiveDeviceByIp(interfaceIPAddr);
 	if (dev == NULL)
@@ -136,11 +169,7 @@ int main(int argc, char* argv[])
 	pcpp::RawPacketVector packetVec;
 
 	// start capturing packets. All packets will be added to the packet vector
-    std::string newDBLine;
-    std::string prev;
-
-    std::string kLines;
-
+    int time = 1000;
 	dev->startCapture(packetVec);
     while(1){
         sleep(5);
@@ -152,64 +181,23 @@ int main(int argc, char* argv[])
             // feed packet to the stats object
             stats.consumePacket(parsedPacket);
         }
-        int ctr = 0;
-        std::ifstream oDB("../db.json");
-        std::ofstream nDB("../nDB.json");
-        //for testing
-        newDBLine = "\t\t{ \"time\": " + std::to_string(time+=1000) + 
-            ", \"ETH\": " + std::to_string(stats.ethPacketCount) +
-            ", \"IPV4\": " + std::to_string(stats.ipv4PacketCount) +
-            ", \"IPV6\": " + std::to_string(stats.ipv6PacketCount) +
-            ", \"UDP\": " + std::to_string(stats.udpPacketCount) + 
-            ", \"TCP\": " + std::to_string(stats.tcpPacketCount) + 
-            ", \"DNS\": " + std::to_string(stats.dnsPacketCount) + 
-            ", \"HTTP\": " + std::to_string(stats.httpPacketCount) + 
-            ", \"SSL\": " + std::to_string(stats.sslPacketCount) + 
-            "}";
-        while(getline(oDB, kLines)){
-            std::cout<<"got: "<<kLines<<"\n";
-            // if(kLines.find_first_of('{') != std::string::npos && kLines.length() > 1){
-            // }
-            size_t curlPos = kLines.find('}');
+        vector<pair<string, int>> protStats;
+        protStats.push_back(make_pair("time", time));
+        time+=1000;
+        protStats.push_back(make_pair("ETH", stats.ethPacketCount));
+        protStats.push_back(make_pair("IPV4", stats.ipv4PacketCount));
+        protStats.push_back(make_pair("IPV6", stats.ipv6PacketCount));
+        protStats.push_back(make_pair("UDP", stats.udpPacketCount));
+        protStats.push_back(make_pair("TCP", stats.tcpPacketCount));
+        protStats.push_back(make_pair("DNS", stats. dnsPacketCount));
+        protStats.push_back(make_pair("HTTP", stats.httpPacketCount));
+        protStats.push_back(make_pair("SSL", stats.sslPacketCount));
 
-            if( curlPos != std::string::npos && kLines.find_last_of(',') < curlPos )
-            {
-                kLines.append(",");
-            }
-            if(kLines.find_first_of(']')!=std::string::npos){
-                nDB<<newDBLine<<"\n";
-                std::cout<<"appended : " << newDBLine << "\n";
-            }
-            nDB<<kLines<<"\n";
-            ctr++;
-            
-            
+        protStatsList.push_back(protStats);
+        if(protStatsList.size() > 100)
+        {
+            protStatsList.erase(protStatsList.begin());
         }
-
-        oDB.close();
-        nDB.close();
-        if(ctr > 20 ){//clear both
-            std::fstream clearBoth;
-            clearBoth.open("../db.json", std::ios::out | std::ios::trunc);
-            clearBoth.close();
-            clearBoth.open("../nDB.json", std::ios::out | std::ios::trunc);
-            clearBoth<<"{\n"
-                <<"  \"PacketStats\": [\n"
-                <<prev<<",\n"
-                <<newDBLine<<"\n"
-                <<"	  ]\n"
-                <<"}";
-            clearBoth.close();
-        }
-        prev = newDBLine;
-        ctr=0;
-        std::remove("../db.json");
-        std::rename("../nDB.json", "../db.json");
-
-
-        // append stats to db.json
-        //{ "time": 2000, "UDP": 2, "TCP": 2, "ICMP": 2} 
-        
     }
 	
     
@@ -217,5 +205,5 @@ int main(int argc, char* argv[])
 
 	// stop capturing packets
 	dev->stopCapture();
-	stats.printToConsole();
+	// stats.printToConsole();
 }

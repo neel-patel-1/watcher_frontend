@@ -41,7 +41,7 @@ dependents:
 	@cd $(PCAPPLUSPLUS_HOME) && $(MAKE) libs
 
 Writer: start create-directories $(OBJS_FILENAMES)
-	@$(CXX) $(PCAPPP_BUILD_FLAGS) $(PCAPPP_LIBS_DIR) -o "./Bin/Writer$(BIN_EXT)" $(OBJS_FILENAMES) $(PCAPPP_LIBS) -lcrypto -lssl
+	@$(CXX) $(PCAPPP_BUILD_FLAGS) $(PCAPPP_LIBS_DIR) -o "./Bin/Writer$(BIN_EXT)" $(OBJS_FILENAMES) $(PCAPPP_LIBS) -lboost_system -lcrypto -lssl -lcpprest
 	@$(PCAPPP_POST_BUILD)
 	@echo Finished successfully building: $(CUR_TARGET)
 	@echo ' '
