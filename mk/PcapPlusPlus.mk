@@ -1,4 +1,4 @@
-PCAPPLUSPLUS_HOME := /home/neel/pcap_testing/PcapPlusPlus
+PCAPPLUSPLUS_HOME := ../PcapPlusPlus
 
 ### COMMON ###
 

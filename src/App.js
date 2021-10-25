@@ -17,7 +17,7 @@ function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    setInterval( async () => {fetch("http://172.18.177.104:5000/PacketStats")
+    setInterval( async () => {fetch("http://localhost:5000/PacketStats")
       .then(res => res.json())
       .then(
         (result) => {
@@ -32,19 +32,19 @@ function App() {
     },5000)
   }, [])
 
-  // if (error) {
-  //   return <div>Error: {error.message}</div>;
-  // } else if (!isLoaded) {
-  //   return <div>Loading...</div>;
-  // }
-  // else {
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  } else if (!isLoaded) {
+    return <div>Loading...</div>;
+  }
+  else {
     return (
       <header class="App-header">
         <PackData stats={stats}/>
         <Filter></Filter>
       </header>
     );
-  // }
+  }
   
 }
 

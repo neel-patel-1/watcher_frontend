@@ -33,4 +33,4 @@ INSTALL_SCRIPT := install.sh
 UNINSTALL_SCRIPT := uninstall.sh
 
 
-PCAPPLUSPLUS_HOME := /home/neel/pcap_testing/PcapPlusPlus
+PCAPPLUSPLUS_HOME := /../PcapPlusPlus

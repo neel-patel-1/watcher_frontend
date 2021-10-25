@@ -90,7 +90,7 @@ std::string getListenIp()
     struct ifreq ifr;
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     ifr.ifr_addr.sa_family = AF_INET;
-    strncpy(ifr.ifr_name, "eth0", IFNAMSIZ-1);
+    strncpy(ifr.ifr_name, "lo", IFNAMSIZ-1);
     ioctl(fd, SIOCGIFADDR, &ifr);
     close(fd);
     std::string ip_addr = std::string(inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
@@ -98,24 +98,41 @@ std::string getListenIp()
     return ip_addr;
 }
 
+void handle_options(http_request request)
+{
+http_response response(status_codes::OK);
+response.headers().add(U("Allow"), U("GET, POST, OPTIONS"));
+response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
+response.headers().add(U("Access-Control-Allow-Methods"), U("GET, POST, OPTIONS"));
+response.headers().add(U("Access-Control-Allow-Headers"), U("Content-Type"));
+request.reply(response);
+}
+
 vector<vector<pair<string, int>>> protStatsList;
 void handle_get(http_request request)
 {
    TRACE(L"\nhandle GET\n");
    json::value timeSeries;
+   int ctr=0;
    for (auto time : protStatsList){
-       timeSeries["PacketStats"][time[0].first] = json::value::number(time[0].second);
-       timeSeries["PacketStats"][time[1].first] = json::value::number(time[1].second);
-       timeSeries["PacketStats"][time[2].first] = json::value::number(time[2].second);
-       timeSeries["PacketStats"][time[3].first] = json::value::number(time[3].second);
-       timeSeries["PacketStats"][time[4].first] = json::value::number(time[4].second);
-       timeSeries["PacketStats"][time[5].first] = json::value::number(time[5].second);
-       timeSeries["PacketStats"][time[6].first] = json::value::number(time[6].second);
-       timeSeries["PacketStats"][time[7].first] = json::value::number(time[7].second);
-       timeSeries["PacketStats"][time[8].first] = json::value::number(time[8].second);
+       TRACE(L"\npush time object\n");
+       timeSeries["PacketStats"][ctr][time[0].first] = json::value::number(time[0].second);
+       timeSeries["PacketStats"][ctr][time[1].first] = json::value::number(time[1].second);
+       timeSeries["PacketStats"][ctr][time[2].first] = json::value::number(time[2].second);
+       timeSeries["PacketStats"][ctr][time[3].first] = json::value::number(time[3].second);
+       timeSeries["PacketStats"][ctr][time[4].first] = json::value::number(time[4].second);
+       timeSeries["PacketStats"][ctr][time[5].first] = json::value::number(time[5].second);
+       timeSeries["PacketStats"][ctr][time[6].first] = json::value::number(time[6].second);
+       timeSeries["PacketStats"][ctr][time[7].first] = json::value::number(time[7].second);
+       timeSeries["PacketStats"][ctr][time[8].first] = json::value::number(time[8].second);
+        ctr++;
    }
-   cout<<timeSeries.serialize()<<endl;
-   request.reply(status_codes::OK, timeSeries);
+    http_response response(status_codes::OK);
+    cout<<timeSeries.serialize()<<endl;
+    response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
+    response.set_body(timeSeries);
+    request.reply(response);
+   
 }
 
 int main(int argc, char* argv[])
@@ -123,24 +140,6 @@ int main(int argc, char* argv[])
     
 
     /*front end request listener*/
-    http_listener listener("http://localhost:5000");
-    listener.support(methods::GET, handle_get);
-
-    try
-    {
-        listener
-            .open()
-            .then([&listener](){TRACE(L"\nstarting to listen\n");})
-            .wait();
-
-        while (true);
-    }
-    catch (exception const & e)
-    {
-        wcout << e.what() << endl;
-    }
-
-    /*Pcap device thread*/
     std::string interfaceIPAddr = getListenIp();
 	PacketStats stats;
 
@@ -167,10 +166,44 @@ int main(int argc, char* argv[])
 	}
 
 	pcpp::RawPacketVector packetVec;
+    
+    
 
 	// start capturing packets. All packets will be added to the packet vector
+    int initialStats = 2;
     int time = 1000;
+    for(int i=0; i<initialStats; i++){
+        vector<pair<string, int>> protStats;
+        protStats.push_back(make_pair("time", time));
+        time+=1000;
+        protStats.push_back(make_pair("ETH", stats.ethPacketCount));
+        protStats.push_back(make_pair("IPV4", stats.ipv4PacketCount));
+        protStats.push_back(make_pair("IPV6", stats.ipv6PacketCount));
+        protStats.push_back(make_pair("UDP", stats.udpPacketCount));
+        protStats.push_back(make_pair("TCP", stats.tcpPacketCount));
+        protStats.push_back(make_pair("DNS", stats. dnsPacketCount));
+        protStats.push_back(make_pair("HTTP", stats.httpPacketCount));
+        protStats.push_back(make_pair("SSL", stats.sslPacketCount));
+        protStatsList.push_back(protStats);
+    }
 	dev->startCapture(packetVec);
+    
+    http_listener listener("http://localhost:5000");
+    listener.support(methods::GET, handle_get);
+    listener.support(methods::OPTIONS, handle_options);
+    try
+    {
+        listener
+            .open()
+            .then([&listener](){TRACE(L"\nstarting to listen\n");})
+            .wait();
+
+        while (true);
+    }
+    catch (exception const & e)
+    {
+        wcout << e.what() << endl;
+    }
     while(1){
         sleep(5);
         for (pcpp::RawPacketVector::ConstVectorIterator iter = packetVec.begin(); iter != packetVec.end(); iter++)
@@ -199,6 +232,9 @@ int main(int argc, char* argv[])
             protStatsList.erase(protStatsList.begin());
         }
     }
+
+    /*Pcap device thread*/
+    
 	
     
     

@@ -2,15 +2,19 @@
 
 clone this repo
 
-starting the frontend
+dependencies for compiling backend:
+libpcap-dev
+libcpprest-dev
 
-type 'npm install' to get the packages
-'npm start' to start the server (http)
-'npm run server' to start the json server 
-
-starting the backend
-compile the pcap++ library locally https://pcapplusplus.github.io/docs/install#build-from-source
-replace the mk/ directory of the Writer folder with the mk/ directory from your PcapPlusPlus/ directory
-run 'sudo make test' from the Writer directory to compile and start the backend
-
+starting the (test) frontend
+type 'npm install' to get the packages for react development server
+'npm start' to start the react development server
+'npm run server' to start a test json-server
 you should now see graphs being updated in the browser
+
+
+starting the backend:
+-compile the Writer subdirectory
+-assumes PcapPlusPlus is in top level directory
+
+
