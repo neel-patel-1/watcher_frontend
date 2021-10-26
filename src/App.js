@@ -4,6 +4,8 @@ import './App.css';
 import Filter from './Filter'
 import PackData from './PackData'
 import SideBar from './SideBar'
+import Home from './pages/Home'
+import Stats from './pages/Stats'
 import {React, ReactDOM, useState, useEffect} from 'react'
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 // const data = [
@@ -44,7 +46,15 @@ function App() {
       <header class="App-header">
         <Router>
         <SideBar/>
-        <PackData stats={stats}/>
+        <Switch>
+          <Route path='/' exact component={Home} />
+          <Route path='/reports' component={Stats} />
+         
+        </Switch>
+        <PackData style={{
+            position: 'absolute', left: '50%', top: '50%',
+            transform: 'translate(-50%, -50%)'
+        }} stats={stats}/>
         <Filter></Filter>
         </Router>
       </header>
