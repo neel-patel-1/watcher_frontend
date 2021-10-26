@@ -1,9 +1,13 @@
 import React from 'react'
-import { LineChart, AreaChart, XAxis, YAxis, Tooltip, CartesianGrid, Line, Area } from 'recharts';
+import { ResponsiveContainer, LineChart, AreaChart, XAxis, YAxis, Tooltip, CartesianGrid, Line, Area } from 'recharts';
 const PackData = ({stats}) => {
     return (
-        <div>
-            <AreaChart width={500} height={300} data={stats}>
+        <div >
+          <ResponsiveContainer class='charts'  width='100%' height={400}>
+            <AreaChart  width={500} height={300} data={stats}
+            margin = {{
+              top: 10, right: 500, left: 500, bottom: 10,
+            }}>
         <defs>
           <linearGradient id="colorhttp" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
@@ -48,6 +52,8 @@ const PackData = ({stats}) => {
         <Area type="monotone" dataKey="DNS" stroke="#82ca9d" fillOpacity={1} fill="url(#colordns)" />
         <Tooltip />
         </AreaChart>
+        </ResponsiveContainer>
+        
         <AreaChart width={500} height={300} data={stats}>
         <defs>
           <linearGradient id="colorhttp" x1="0" y1="0" x2="0" y2="1">
@@ -93,6 +99,7 @@ const PackData = ({stats}) => {
         <Area type="monotone" dataKey="DNS" stroke="#82ca9d" fillOpacity={1} fill="url(#colordns)" />
         <Tooltip />
         </AreaChart>
+        
         </div>
     )
 }

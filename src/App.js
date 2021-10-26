@@ -19,7 +19,7 @@ function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    setInterval( async () => {fetch("http://localhost:5000/PacketStats")
+    setTimeout( async () => {fetch("http://localhost:5000/PacketStats")
       .then(res => res.json())
       .then(
         (result) => {
@@ -31,7 +31,7 @@ function App() {
           setError(error)
         }
       )
-    },5000)
+    },500)
   }, [])
 
   if (error) {
@@ -44,8 +44,8 @@ function App() {
       <header class="App-header">
         <Router>
         <SideBar/>
-        {/* <PackData stats={stats}/>
-        <Filter></Filter> */}
+        <PackData stats={stats}/>
+        <Filter></Filter>
         </Router>
       </header>
     );
