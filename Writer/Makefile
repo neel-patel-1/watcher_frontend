@@ -1,12 +1,12 @@
-ifeq ($(wildcard ../mk/platform.mk),)
+ifeq ($(wildcard ../PcapPlusPlus/mk/platform.mk),)
   $(error platform.mk not found! Please run configure script first)
 endif
-ifeq ($(wildcard ../mk/PcapPlusPlus.mk),)
+ifeq ($(wildcard ../PcapPlusPlus/mk/PcapPlusPlus.mk),)
   $(error PcapPlusPlus.mk not found! Please run configure script first)
 endif
 
-include ../mk/platform.mk
-include ../mk/PcapPlusPlus.mk
+include ../PcapPlusPlus/mk/platform.mk
+include ../PcapPlusPlus/mk/PcapPlusPlus.mk
 
 SOURCES := $(wildcard *.cpp)
 OBJS_FILENAMES := $(patsubst %.cpp,Obj/%.o,$(SOURCES))
@@ -26,9 +26,9 @@ CUR_TARGET := $(notdir $(shell pwd))
 all: dependents Writer
 
 test: all
-	sudo touch ../db.json
-	sudo cp ../db_copy.json ../db.json
-	sudo ./Bin/Writer 
+	touch ../db.json
+	cp ../db_copy.json ../db.json
+	./Bin/Writer 
 
 start:
 	@echo ==== Building target: $(CUR_TARGET) ====

@@ -130,15 +130,37 @@ void handle_get(http_request request)
     http_response response(status_codes::OK);
     cout<<timeSeries.serialize()<<endl;
     response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
-    response.set_body(timeSeries);
+    response.set_body(timeSeries["PacketStats"]);
     request.reply(response);
    
+}
+
+void *jsonServer(void *param){
+    http_listener listener("http://localhost:5000");
+    listener.support(methods::GET, handle_get);
+    listener.support(methods::OPTIONS, handle_options);
+    try
+    {
+        listener
+            .open()
+            .then([&listener](){TRACE(L"\nstarting to listen\n");})
+            .wait();
+
+        while (true);
+    }
+    catch (exception const & e)
+    {
+        wcout << e.what() << endl;
+    }
 }
 
 int main(int argc, char* argv[])
 {
     
-
+    pthread_t serv;
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_create(&serv, &attr, jsonServer, (void *)NULL);
     /*front end request listener*/
     std::string interfaceIPAddr = getListenIp();
 	PacketStats stats;
@@ -164,13 +186,11 @@ int main(int argc, char* argv[])
 		std::cerr << "Cannot open device" << std::endl;
 		return 1;
 	}
-
+    /*Pcap device thread*/
 	pcpp::RawPacketVector packetVec;
-    
-    
-
 	// start capturing packets. All packets will be added to the packet vector
-    int initialStats = 2;
+    
+    int initialStats = 1;
     int time = 1000;
     for(int i=0; i<initialStats; i++){
         vector<pair<string, int>> protStats;
@@ -187,23 +207,6 @@ int main(int argc, char* argv[])
         protStatsList.push_back(protStats);
     }
 	dev->startCapture(packetVec);
-    
-    http_listener listener("http://localhost:5000");
-    listener.support(methods::GET, handle_get);
-    listener.support(methods::OPTIONS, handle_options);
-    try
-    {
-        listener
-            .open()
-            .then([&listener](){TRACE(L"\nstarting to listen\n");})
-            .wait();
-
-        while (true);
-    }
-    catch (exception const & e)
-    {
-        wcout << e.what() << endl;
-    }
     while(1){
         sleep(5);
         for (pcpp::RawPacketVector::ConstVectorIterator iter = packetVec.begin(); iter != packetVec.end(); iter++)
@@ -233,12 +236,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    /*Pcap device thread*/
     
-	
-    
-    
-
 	// stop capturing packets
 	dev->stopCapture();
 	// stats.printToConsole();
