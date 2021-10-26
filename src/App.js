@@ -3,7 +3,9 @@ import './App.css';
 
 import Filter from './Filter'
 import PackData from './PackData'
+import SideBar from './SideBar'
 import {React, ReactDOM, useState, useEffect} from 'react'
+import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 // const data = [
 //   { time: '21:20', TCP: 100, UDP: 100, ICMP: 400 },
 //   { time: '21:30', TCP: 1000, UDP: 2400, ICMP: 2400 },
@@ -40,8 +42,11 @@ function App() {
   else {
     return (
       <header class="App-header">
-        <PackData stats={stats}/>
-        <Filter></Filter>
+        <Router>
+        <SideBar/>
+        {/* <PackData stats={stats}/>
+        <Filter></Filter> */}
+        </Router>
       </header>
     );
   }
