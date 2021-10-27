@@ -1,6 +1,7 @@
 import React from 'react'
 import { ResponsiveContainer, LineChart, AreaChart, XAxis, YAxis, Tooltip, CartesianGrid, Line, Area } from 'recharts';
-const ProtLine = ({data}) => {
+import './PackData.css'
+const ProtLine = ({data}, {prots}) => {
     return (
         <div >
           <ResponsiveContainer  width={400} height={400} className='recharts-wrapper'>
@@ -39,6 +40,7 @@ const ProtLine = ({data}) => {
         <YAxis/>
         <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
         <Tooltip />
+        {/* {prots.map((prot)=> (<Area type="monotone" dataKey={prot} stroke="#8884d8" fillOpacity={1} fill="url(#colortcp)" />))} */}
         <Area type="monotone" dataKey="TCP" stroke="#8884d8" fillOpacity={1} fill="url(#colortcp)" />
         <Area type="monotone" dataKey="HTTP" stroke="#8884d8" fillOpacity={1} fill="url(#colorhttp)" />
         <Area type="monotone" dataKey="UDP" stroke="#82ca9d" fillOpacity={1} fill="url(#colorudp)" />

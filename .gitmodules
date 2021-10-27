@@ -1,3 +1,4 @@
 [submodule "PcapPlusPlus"]
 	path = PcapPlusPlus
 	url = https://github.com/seladb/PcapPlusPlus.git
+	ignore = dirty

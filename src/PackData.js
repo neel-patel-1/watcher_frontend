@@ -7,12 +7,12 @@ const PackData = ({stats}) => {
   console.log(stats[stats.length-1]['UDP'])
   const lastTime = stats[stats.length-1]
   const piedata = [{name: 'UDP', value: lastTime['UDP']}, {name: 'TCP', value: lastTime['TCP']}, {name: 'ICMP', value: lastTime['ICMP']}]
-  
+  const fstChartProts = ["TCP", "UDP", "HTTP", "ICMP", "SSL", "DNS"]
     return (
         <div >
-          <ProtLine data={stats} />
+          <ProtLine data={stats} prots={fstChartProts} />
           <ProtPie data={piedata} />
-        <ResponsiveContainer class='charts'  width='25%' height={400}>
+        {/* <ResponsiveContainer class='charts'  width='25%' height={400}>
         <AreaChart width={500} height={300} data={stats}
         margin = {{
           right: 0,
@@ -54,17 +54,15 @@ const PackData = ({stats}) => {
         <YAxis/>
         <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
         <Tooltip />
-        {/* <Area type="monotone" dataKey="TCP" stroke="#8884d8" fillOpacity={1} fill="url(#colortcp)" /> */}
+        
         <Area type="monotone" dataKey="HTTP" stroke="#8884d8" fillOpacity={1} fill="url(#colorhttp)" />
         <Area type="monotone" dataKey="UDP" stroke="#82ca9d" fillOpacity={1} fill="url(#colorudp)" />
-        {/* <Area type="monotone" dataKey="IPV4" stroke="#82ca9d" fillOpacity={1} fill="url(#coloripv4)" /> */}
-        {/* <Area type="monotone" dataKey="IPV6" stroke="#82ca9d" fillOpacity={1} fill="url(#coloripv6)" /> */}
-        {/* <Area type="monotone" dataKey="ETH" stroke="#82ca9d" fillOpacity={1} fill="url(#coloreth)" /> */}
+        
         <Area type="monotone" dataKey="SSL" stroke="#82ca9d" fillOpacity={1} fill="url(#colorssl)" />
         <Area type="monotone" dataKey="DNS" stroke="#82ca9d" fillOpacity={1} fill="url(#colordns)" />
         <Tooltip />
         </AreaChart>
-        </ResponsiveContainer>
+        </ResponsiveContainer> */}
         
         </div>
     )

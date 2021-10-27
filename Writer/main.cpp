@@ -230,7 +230,7 @@ int main(int argc, char* argv[])
         protStats.push_back(make_pair("SSL", stats.sslPacketCount));
 
         protStatsList.push_back(protStats);
-        if(protStatsList.size() > 100)
+        if(protStatsList.size() > 6)
         {
             protStatsList.erase(protStatsList.begin());
         }

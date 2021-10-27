@@ -25,6 +25,19 @@ function App() {
       .then(res => res.json())
       .then(
         (result) => {
+          setInterval( async () => {fetch("http://localhost:5000/PacketStats")
+          .then(res => res.json())
+          .then(
+            (result) => {
+              setIsLoaded(true)
+              setStats(result)
+            },
+            (error) => {
+              setIsLoaded(true)
+              setError(error)
+            }
+      )
+    },0)
           setIsLoaded(true)
           setStats(result)
         },
@@ -33,7 +46,7 @@ function App() {
           setError(error)
         }
       )
-    },500)
+    },0)
   }, [])
 
   if (error) {
