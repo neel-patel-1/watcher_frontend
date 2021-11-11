@@ -84,6 +84,16 @@ struct PacketStats
             sslPacketCount++;
     }
 };
+
+int infoMode = 0;
+/**
+ * Mode=0 <--get requests return graph data
+ * Mode=1 <--get requests return feat1
+ * .
+ * .
+ * .
+ */
+
 std::string getListenIp()
 {
     int fd;
@@ -97,7 +107,12 @@ std::string getListenIp()
     std::cout<<"interface ip: "<<ip_addr<<std::endl;
     return ip_addr;
 }
-
+void display_json(
+   json::value const & jvalue,
+   utility::string_t const & prefix)
+{
+   cout << prefix << jvalue.serialize() << endl;
+}
 void handle_options(http_request request)
 {
 http_response response(status_codes::OK);
@@ -111,33 +126,72 @@ request.reply(response);
 vector<vector<pair<string, int>>> protStatsList;
 void handle_get(http_request request)
 {
-   TRACE(L"\nhandle GET\n");
-   json::value timeSeries;
-   int ctr=0;
-   for (auto time : protStatsList){
-       TRACE(L"\npush time object\n");
-       timeSeries["PacketStats"][ctr][time[0].first] = json::value::number(time[0].second);
-       timeSeries["PacketStats"][ctr][time[1].first] = json::value::number(time[1].second);
-       timeSeries["PacketStats"][ctr][time[2].first] = json::value::number(time[2].second);
-       timeSeries["PacketStats"][ctr][time[3].first] = json::value::number(time[3].second);
-       timeSeries["PacketStats"][ctr][time[4].first] = json::value::number(time[4].second);
-       timeSeries["PacketStats"][ctr][time[5].first] = json::value::number(time[5].second);
-       timeSeries["PacketStats"][ctr][time[6].first] = json::value::number(time[6].second);
-       timeSeries["PacketStats"][ctr][time[7].first] = json::value::number(time[7].second);
-       timeSeries["PacketStats"][ctr][time[8].first] = json::value::number(time[8].second);
-        ctr++;
-   }
     http_response response(status_codes::OK);
-    cout<<timeSeries.serialize()<<endl;
-    response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
-    response.set_body(timeSeries["PacketStats"]);
-    request.reply(response);
-   
+    if(infoMode == 0){
+        TRACE(L"\nhandle GET\n");
+        json::value timeSeries;
+        int ctr=0;
+        for (auto time : protStatsList){
+            TRACE(L"\npush time object\n");
+            timeSeries["PacketStats"][ctr][time[0].first] = json::value::number(time[0].second);
+            timeSeries["PacketStats"][ctr][time[1].first] = json::value::number(time[1].second);
+            timeSeries["PacketStats"][ctr][time[2].first] = json::value::number(time[2].second);
+            timeSeries["PacketStats"][ctr][time[3].first] = json::value::number(time[3].second);
+            timeSeries["PacketStats"][ctr][time[4].first] = json::value::number(time[4].second);
+            timeSeries["PacketStats"][ctr][time[5].first] = json::value::number(time[5].second);
+            timeSeries["PacketStats"][ctr][time[6].first] = json::value::number(time[6].second);
+            timeSeries["PacketStats"][ctr][time[7].first] = json::value::number(time[7].second);
+            timeSeries["PacketStats"][ctr][time[8].first] = json::value::number(time[8].second);
+            ctr++;
+        }
+        cout<<timeSeries.serialize()<<endl;
+        response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
+        response.set_body(timeSeries["PacketStats"]);
+        request.reply(response);
+    }
+    else if(infoMode == 1){
+        string modeResp = "mode : 1\n";
+        response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
+        response.set_body(modeResp);
+        request.reply(response);
+    }
 }
+void handle_post(http_request request)
+{
+    http_response response(status_codes::OK);
+    
+    auto answer = json::value::object();
+    request
+      .extract_json()
+      .then([&answer](pplx::task<json::value> task) {
+         try
+         {
+            auto const & jvalue = task.get();
+            display_json(jvalue, L"R: ");
 
+            if (!jvalue.is_null())
+            {
+                for (auto const & e : jvalue.as_array())
+                {
+                    if (e.is_string())
+                    {
+                        auto key = e.as_string();
+                        cout<<key;
+                    }
+                }
+            }
+         }
+         catch (http_exception const & e)
+         {
+            wcout << e.what() << endl;
+         }
+      })
+      .wait();
+}
 void *jsonServer(void *param){
     http_listener listener("http://localhost:5000");
     listener.support(methods::GET, handle_get);
+    listener.support(methods::POST, handle_post);
     listener.support(methods::OPTIONS, handle_options);
     try
     {
