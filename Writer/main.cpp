@@ -33,6 +33,8 @@
 #include <fstream>
 #include <random>
 
+#include "StatsExecutive.h"
+
 #pragma warning ( push )
 #pragma warning ( disable : 4457 )
 #pragma warning ( pop )
@@ -52,38 +54,6 @@ using namespace http::experimental::listener;
 #define TRACE(msg)            wcout << msg
 #define TRACE_ACTION(a, k, v) wcout << a << L" (" << k << L", " << v << L")\n"
 using namespace std;
-struct PacketStats
-{
-    int ethPacketCount;
-    int ipv4PacketCount;
-    int ipv6PacketCount;
-    int tcpPacketCount;
-    int udpPacketCount;
-    int dnsPacketCount;
-    int httpPacketCount;
-    int sslPacketCount;
-    void clear() { ethPacketCount = 0; ipv4PacketCount = 0; ipv6PacketCount = 0; tcpPacketCount = 0; udpPacketCount = 0; tcpPacketCount = 0; dnsPacketCount = 0; httpPacketCount = 0; sslPacketCount = 0; }
-    PacketStats() { clear(); }
-    void consumePacket(pcpp::Packet& packet)
-    {
-        if (packet.isPacketOfType(pcpp::Ethernet))
-            ethPacketCount++;
-        if (packet.isPacketOfType(pcpp::IPv4))
-            ipv4PacketCount++;
-        if (packet.isPacketOfType(pcpp::IPv6))
-            ipv6PacketCount++;
-        if (packet.isPacketOfType(pcpp::TCP))
-            tcpPacketCount++;
-        if (packet.isPacketOfType(pcpp::UDP))
-            udpPacketCount++;
-        if (packet.isPacketOfType(pcpp::DNS))
-            dnsPacketCount++;
-        if (packet.isPacketOfType(pcpp::HTTP))
-            httpPacketCount++;
-        if (packet.isPacketOfType(pcpp::SSL))
-            sslPacketCount++;
-    }
-};
 
 int infoMode = 0;
 /**
@@ -115,12 +85,12 @@ void display_json(
 }
 void handle_options(http_request request)
 {
-http_response response(status_codes::OK);
-response.headers().add(U("Allow"), U("GET, POST, OPTIONS"));
-response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
-response.headers().add(U("Access-Control-Allow-Methods"), U("GET, POST, OPTIONS"));
-response.headers().add(U("Access-Control-Allow-Headers"), U("Content-Type"));
-request.reply(response);
+    http_response response(status_codes::OK);
+    response.headers().add(U("Allow"), U("GET, POST, OPTIONS"));
+    response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
+    response.headers().add(U("Access-Control-Allow-Methods"), U("GET, POST, OPTIONS"));
+    response.headers().add(U("Access-Control-Allow-Headers"), U("Content-Type"));
+    request.reply(response);
 }
 
 vector<vector<pair<string, int>>> protStatsList;
@@ -167,7 +137,7 @@ void handle_post(http_request request)
          try
          {
             auto const & jvalue = task.get();
-            display_json(jvalue, L"R: ");
+            display_json(jvalue, "R: ");
 
             if (!jvalue.is_null())
             {
@@ -210,14 +180,17 @@ void *jsonServer(void *param){
 
 int main(int argc, char* argv[])
 {
-    
+    /* create thread for json server */
     pthread_t serv;
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_create(&serv, &attr, jsonServer, (void *)NULL);
+    
     /*front end request listener*/
     std::string interfaceIPAddr = getListenIp();
-	PacketStats stats;
+
+    /* create stats executive object */
+    StatsExecutive statsExec;
 
 	pcpp::PcapLiveDevice* dev = pcpp::PcapLiveDeviceList::getInstance().getPcapLiveDeviceByIp(interfaceIPAddr);
 	if (dev == NULL)
@@ -246,18 +219,19 @@ int main(int argc, char* argv[])
     
     int initialStats = 1;
     int time = 1000;
+    TypeCounts initialTypeStats = statsExec.getPacketTypeCounts();
     for(int i=0; i<initialStats; i++){
         vector<pair<string, int>> protStats;
         protStats.push_back(make_pair("time", time));
         time+=1000;
-        protStats.push_back(make_pair("ETH", stats.ethPacketCount));
-        protStats.push_back(make_pair("IPV4", stats.ipv4PacketCount));
-        protStats.push_back(make_pair("IPV6", stats.ipv6PacketCount));
-        protStats.push_back(make_pair("UDP", stats.udpPacketCount));
-        protStats.push_back(make_pair("TCP", stats.tcpPacketCount));
-        protStats.push_back(make_pair("DNS", stats. dnsPacketCount));
-        protStats.push_back(make_pair("HTTP", stats.httpPacketCount));
-        protStats.push_back(make_pair("SSL", stats.sslPacketCount));
+        protStats.push_back(make_pair("ETH", initialTypeStats.ethPacketCount));
+        protStats.push_back(make_pair("IPV4", initialTypeStats.ipv4PacketCount));
+        protStats.push_back(make_pair("IPV6", initialTypeStats.ipv6PacketCount));
+        protStats.push_back(make_pair("UDP", initialTypeStats.udpPacketCount));
+        protStats.push_back(make_pair("TCP", initialTypeStats.tcpPacketCount));
+        protStats.push_back(make_pair("DNS", initialTypeStats. dnsPacketCount));
+        protStats.push_back(make_pair("HTTP", initialTypeStats.httpPacketCount));
+        protStats.push_back(make_pair("SSL", initialTypeStats.sslPacketCount));
         protStatsList.push_back(protStats);
     }
 	dev->startCapture(packetVec);
@@ -269,19 +243,20 @@ int main(int argc, char* argv[])
             pcpp::Packet parsedPacket(*iter);
 
             // feed packet to the stats object
-            stats.consumePacket(parsedPacket);
+            statsExec.consumePacket(parsedPacket);
         }
         vector<pair<string, int>> protStats;
+        TypeCounts typeStats = statsExec.getPacketTypeCounts();
         protStats.push_back(make_pair("time", time));
         time+=1000;
-        protStats.push_back(make_pair("ETH", stats.ethPacketCount));
-        protStats.push_back(make_pair("IPV4", stats.ipv4PacketCount));
-        protStats.push_back(make_pair("IPV6", stats.ipv6PacketCount));
-        protStats.push_back(make_pair("UDP", stats.udpPacketCount));
-        protStats.push_back(make_pair("TCP", stats.tcpPacketCount));
-        protStats.push_back(make_pair("DNS", stats. dnsPacketCount));
-        protStats.push_back(make_pair("HTTP", stats.httpPacketCount));
-        protStats.push_back(make_pair("SSL", stats.sslPacketCount));
+        protStats.push_back(make_pair("ETH", typeStats.ethPacketCount));
+        protStats.push_back(make_pair("IPV4", typeStats.ipv4PacketCount));
+        protStats.push_back(make_pair("IPV6", typeStats.ipv6PacketCount));
+        protStats.push_back(make_pair("UDP", typeStats.udpPacketCount));
+        protStats.push_back(make_pair("TCP", typeStats.tcpPacketCount));
+        protStats.push_back(make_pair("DNS", typeStats.dnsPacketCount));
+        protStats.push_back(make_pair("HTTP", typeStats.httpPacketCount));
+        protStats.push_back(make_pair("SSL", typeStats.sslPacketCount));
 
         protStatsList.push_back(protStats);
         if(protStatsList.size() > 6)
@@ -293,5 +268,4 @@ int main(int argc, char* argv[])
     
 	// stop capturing packets
 	dev->stopCapture();
-	// stats.printToConsole();
 }
