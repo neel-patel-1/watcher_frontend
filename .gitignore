@@ -11,6 +11,8 @@ PcapPlusPlus
 
 # production
 /build
+/Writer/Obj
+/Writer/Bin
 
 # misc
 .DS_Store
