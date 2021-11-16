@@ -128,11 +128,11 @@ void handle_get(http_request request)
 {
     http_response response(status_codes::OK);
     if(infoMode == 0){
-        TRACE(L"\nhandle GET\n");
+        //TRACE(L"\nhandle GET\n");
         json::value timeSeries;
         int ctr=0;
         for (auto time : protStatsList){
-            TRACE(L"\npush time object\n");
+            //TRACE(L"\npush time object\n");
             timeSeries["PacketStats"][ctr][time[0].first] = json::value::number(time[0].second);
             timeSeries["PacketStats"][ctr][time[1].first] = json::value::number(time[1].second);
             timeSeries["PacketStats"][ctr][time[2].first] = json::value::number(time[2].second);
@@ -144,7 +144,7 @@ void handle_get(http_request request)
             timeSeries["PacketStats"][ctr][time[8].first] = json::value::number(time[8].second);
             ctr++;
         }
-        cout<<timeSeries.serialize()<<endl;
+        //cout<<timeSeries.serialize()<<endl;
         response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
         response.set_body(timeSeries["PacketStats"]);
         request.reply(response);
@@ -167,16 +167,17 @@ void handle_post(http_request request)
          try
          {
             auto const & jvalue = task.get();
-            display_json(jvalue, L"R: ");
+            display_json(jvalue, "R: ");
 
             if (!jvalue.is_null())
             {
                 for (auto const & e : jvalue.as_array())
                 {
-                    if (e.is_string())
+                    if (e.is_integer())
                     {
-                        auto key = e.as_string();
-                        cout<<key;
+                        auto key = e.as_integer();
+                        infoMode = key;
+                        cout<<key<<"\n";
                     }
                 }
             }

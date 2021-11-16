@@ -21,6 +21,10 @@ function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST","http://localhost:5000/PacketStats", true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.send(JSON.stringify([1]));
     setTimeout( async () => {fetch("http://localhost:5000/PacketStats")
       .then(res => res.json())
       .then(
@@ -31,13 +35,17 @@ function App() {
             (result) => {
               setIsLoaded(true)
               setStats(result)
+              var xhr = new XMLHttpRequest();
+              xhr = new XMLHttpRequest();
+              xhr.open("POST","http://localhost:5000/PacketStats", true);
+              xhr.setRequestHeader('Content-Type', 'application/json');
+              xhr.send(JSON.stringify([1]));
             },
             (error) => {
               setIsLoaded(true)
               setError(error)
             }
-      )
-    },0)
+      )},5000)
           setIsLoaded(true)
           setStats(result)
         },
@@ -46,7 +54,7 @@ function App() {
           setError(error)
         }
       )
-    },0)
+    },500)
   }, [])
 
   if (error) {
