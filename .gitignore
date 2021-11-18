@@ -11,6 +11,11 @@ PcapPlusPlus
 
 # production
 /build
+/Writer/Obj
+/Writer/Bin
+
+db.json
+package-lock.json
 
 # misc
 .DS_Store
