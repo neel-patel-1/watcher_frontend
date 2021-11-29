@@ -120,7 +120,7 @@ void handle_get(http_request request)
         request.reply(response);
     }
     else if(infoMode == 1){
-        string modeResp = "mode : 1\n";
+        string modeResp = "{\"mode\" : 1}\n";
         response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
         response.set_body(modeResp);
         request.reply(response);

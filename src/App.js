@@ -24,8 +24,9 @@ function App() {
     var xhr = new XMLHttpRequest();
     xhr.open("POST","http://localhost:5000/PacketStats", true);
     xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.send(JSON.stringify([1]));
-    setTimeout( async () => {fetch("http://localhost:5000/PacketStats")
+    xhr.send(JSON.stringify([0]));
+    setTimeout( async () => {
+      fetch("http://localhost:5000/PacketStats")
       .then(res => res.json())
       .then(
         (result) => {
@@ -39,7 +40,7 @@ function App() {
               xhr = new XMLHttpRequest();
               xhr.open("POST","http://localhost:5000/PacketStats", true);
               xhr.setRequestHeader('Content-Type', 'application/json');
-              xhr.send(JSON.stringify([1]));
+              xhr.send(JSON.stringify([0]));
             },
             (error) => {
               setIsLoaded(true)
