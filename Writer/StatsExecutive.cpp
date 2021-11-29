@@ -27,6 +27,38 @@ void StatsExecutive::consumePacket(pcpp::Packet& packet)
         typeCounts.httpPacketCount++;
     if (packet.isPacketOfType(pcpp::SSL))
         typeCounts.sslPacketCount++;
+
+    this->processHosts(packet);
+}
+
+void StatsExecutive::processHosts(pcpp::Packet& packet) 
+{
+    pcpp::IPLayer* ipLayer = packet.getLayerOfType<pcpp::IPLayer>();
+    std::string source = ipLayer->getSrcIPAddress().toString();
+    std::string dest = ipLayer->getDstIPAddress().toString();
+
+    std::cout << "source: " << source 
+    << ", dest: " << dest << std::endl;
+
+    // find will return IP addr (ref'd by ->first)
+
+    // add to srcMap
+    auto srcSearch = hostData.srcMap.find(source);
+    if (srcSearch != hostData.srcMap.end()) {
+        hostData.srcMap[source].push_back(packet);
+    } else {
+        std::vector<pcpp::Packet> v = { packet };
+        hostData.srcMap.insert({source, v});
+    }
+
+    // add to dstMap
+    auto dstSearch = hostData.dstMap.find(dest);
+    if (dstSearch != hostData.dstMap.end()) {
+        hostData.dstMap[dest].push_back(packet);
+    } else {
+        std::vector<pcpp::Packet> v = { packet };
+        hostData.dstMap.insert({source, v});
+    }
 }
 
 TypeCounts StatsExecutive::getPacketTypeCounts() const 

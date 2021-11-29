@@ -1,5 +1,24 @@
+#include <map>
+#include <IpAddress.h>
+#include <IPLayer.h>
 #include "stdlib.h"
 #include "PcapLiveDeviceList.h"
+
+struct HostGraph {
+    /* map of traffic between two hosts */
+    /* first index is source, second index is dest */
+    std::map<std::string, std::vector<pcpp::Packet>> srcMap;
+    std::map<std::string, std::vector<pcpp::Packet>> dstMap;
+
+    void clear() {
+        srcMap = {};
+        dstMap = {};
+    }
+
+    HostGraph() {
+        clear();
+    }
+};
 
 struct TypeCounts
 {
@@ -35,6 +54,9 @@ class StatsExecutive
 {
 private: 
     TypeCounts typeCounts;
+    HostGraph hostData;
+
+    void processHosts(pcpp::Packet& packet);
 
 public:
     StatsExecutive();
