@@ -1,6 +1,0 @@
-{
-  "PacketStats": [
-	  { "time": 1000, "ETH": 1, "IPV4": 1, "IPV6": 1, "UDP": 1, "TCP": 1, "DNS": 1, "HTTP": 1, "SSL": 1},
-	  { "time": 2000, "ETH": 2, "IPV4": 2, "IPV6": 2, "UDP": 2, "TCP": 2, "DNS": 2, "HTTP": 2, "SSL": 2}
-	  ]
-}
