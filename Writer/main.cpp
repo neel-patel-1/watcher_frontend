@@ -15,6 +15,7 @@
 #include <fstream>
 
 #include <cpprest/http_listener.h>              // HTTP server
+#include <cpprest/http_msg.h>                   // JSON Utility Functions
 #include <cpprest/json.h>                       // JSON library
 #include <cpprest/uri.h>                        // URI library
 #include <cpprest/ws_client.h>                  // WebSocket client
@@ -34,6 +35,9 @@
 #include <random>
 
 #include "StatsExecutive.h"
+
+#include "stdlib.h"
+#include "PcapLiveDeviceList.h"
 
 #pragma warning ( push )
 #pragma warning ( disable : 4457 )
@@ -55,14 +59,7 @@ using namespace http::experimental::listener;
 #define TRACE_ACTION(a, k, v) wcout << a << L" (" << k << L", " << v << L")\n"
 using namespace std;
 
-int infoMode = 0;
-/**
- * Mode=0 <--get requests return graph data
- * Mode=1 <--get requests return feat1
- * .
- * .
- * .
- */
+pcpp::Packet * packet; // packet being served
 
 std::string getListenIp()
 {
@@ -97,72 +94,50 @@ vector<vector<pair<string, int>>> protStatsList;
 void handle_get(http_request request)
 {
     http_response response(status_codes::OK);
-    if(infoMode == 0){
-        //TRACE(L"\nhandle GET\n");
-        json::value timeSeries;
-        int ctr=0;
-        for (auto time : protStatsList){
-            //TRACE(L"\npush time object\n");
-            timeSeries["PacketStats"][ctr][time[0].first] = json::value::number(time[0].second);
-            timeSeries["PacketStats"][ctr][time[1].first] = json::value::number(time[1].second);
-            timeSeries["PacketStats"][ctr][time[2].first] = json::value::number(time[2].second);
-            timeSeries["PacketStats"][ctr][time[3].first] = json::value::number(time[3].second);
-            timeSeries["PacketStats"][ctr][time[4].first] = json::value::number(time[4].second);
-            timeSeries["PacketStats"][ctr][time[5].first] = json::value::number(time[5].second);
-            timeSeries["PacketStats"][ctr][time[6].first] = json::value::number(time[6].second);
-            timeSeries["PacketStats"][ctr][time[7].first] = json::value::number(time[7].second);
-            timeSeries["PacketStats"][ctr][time[8].first] = json::value::number(time[8].second);
-            ctr++;
-        }
-        //cout<<timeSeries.serialize()<<endl;
-        response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
-        response.set_body(timeSeries["PacketStats"]);
-        request.reply(response);
-    }
-    else if(infoMode == 1){
-        string modeResp = "{\"mode\" : 1}\n";
-        response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
-        response.set_body(modeResp);
-        request.reply(response);
-    }
-}
-void handle_post(http_request request)
-{
-    http_response response(status_codes::OK);
     
-    auto answer = json::value::object();
-    request
-      .extract_json()
-      .then([&answer](pplx::task<json::value> task) {
-         try
-         {
-            auto const & jvalue = task.get();
-            display_json(jvalue, "R: ");
+    
+    // json::value timeSeries;
+    // int ctr=0;
+    // for (auto time : protStatsList){
+    //     //TRACE(L"\npush time object\n");
+    //     timeSeries["PacketStats"][ctr][time[0].first] = json::value::number(time[0].second);
+    //     timeSeries["PacketStats"][ctr][time[1].first] = json::value::number(time[1].second);
+    //     timeSeries["PacketStats"][ctr][time[2].first] = json::value::number(time[2].second);
+    //     timeSeries["PacketStats"][ctr][time[3].first] = json::value::number(time[3].second);
+    //     timeSeries["PacketStats"][ctr][time[4].first] = json::value::number(time[4].second);
+    //     timeSeries["PacketStats"][ctr][time[5].first] = json::value::number(time[5].second);
+    //     timeSeries["PacketStats"][ctr][time[6].first] = json::value::number(time[6].second);
+    //     timeSeries["PacketStats"][ctr][time[7].first] = json::value::number(time[7].second);
+    //     timeSeries["PacketStats"][ctr][time[8].first] = json::value::number(time[8].second);
+    //     ctr++;
+    // }
 
-            if (!jvalue.is_null())
-            {
-                for (auto const & e : jvalue.as_array())
-                {
-                    if (e.is_integer())
-                    {
-                        auto key = e.as_integer();
-                        infoMode = key;
-                        cout<<key<<"\n";
-                    }
-                }
-            }
-         }
-         catch (http_exception const & e)
-         {
-            wcout << e.what() << endl;
-         }
-      })
-      .wait();
+    /* create json packet structure */
+    json::value retPacket;
+    //iterate over layers creating object of form L1: ETH L2: 
+    //get first layer of packet
+    pcpp::Layer* pitr = packet.getLayerOfType(pcpp::Ethernet);
+    //https://stackoverflow.com/questions/44597525/cpp-rest-sdk-json-how-to-create-json-w-array-and-write-to-file
+    if(pitr != nullptr){
+        
+        while(pitr != nullptr){
+            retPacket[std::to_string(pitr->getProtocol())] = 
+                json::value::string(pitr->toString());
+            pitr = pitr->getNextLayer();
+        }
+    }
+
+    
+    response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
+    response.set_body(retPacket);
+    request.reply(response);
+    
+  
 }
 void *jsonServer(void *param){
     http_listener listener("http://localhost:5000");
     listener.support(methods::GET, handle_get);
-    listener.support(methods::POST, handle_post);
+    // listener.support(methods::POST, handle_post);
     listener.support(methods::OPTIONS, handle_options);
     try
     {
@@ -177,6 +152,13 @@ void *jsonServer(void *param){
     {
         wcout << e.what() << endl;
     }
+}
+
+static void onPacketArrives(pcpp::RawPacket* packet, pcpp::PcapLiveDevice* dev, void* cookie)
+{
+    // delete (pcpp::RawPacket*)cookie;
+    pcpp::RawPacket * glb = (pcpp::RawPacket *)cookie;
+    *glb = *packet; // assign packet to global ret
 }
 
 int main(int argc, char* argv[])
@@ -214,59 +196,15 @@ int main(int argc, char* argv[])
 		std::cerr << "Cannot open device" << std::endl;
 		return 1;
 	}
+    
     /*Pcap device thread*/
 	pcpp::RawPacketVector packetVec;
 	// start capturing packets. All packets will be added to the packet vector
     
-    int initialStats = 1;
-    int time = 1000;
-    TypeCounts initialTypeStats = statsExec.getPacketTypeCounts();
-    for(int i=0; i<initialStats; i++){
-        vector<pair<string, int>> protStats;
-        protStats.push_back(make_pair("time", time));
-        time+=1000;
-        protStats.push_back(make_pair("ETH", initialTypeStats.ethPacketCount));
-        protStats.push_back(make_pair("IPV4", initialTypeStats.ipv4PacketCount));
-        protStats.push_back(make_pair("IPV6", initialTypeStats.ipv6PacketCount));
-        protStats.push_back(make_pair("UDP", initialTypeStats.udpPacketCount));
-        protStats.push_back(make_pair("TCP", initialTypeStats.tcpPacketCount));
-        protStats.push_back(make_pair("DNS", initialTypeStats. dnsPacketCount));
-        protStats.push_back(make_pair("HTTP", initialTypeStats.httpPacketCount));
-        protStats.push_back(make_pair("SSL", initialTypeStats.sslPacketCount));
-        protStatsList.push_back(protStats);
-    }
-	dev->startCapture(packetVec);
+	dev->startCapture(onPacketArrives, &packet);
     while(1){
         sleep(5);
-        for (pcpp::RawPacketVector::ConstVectorIterator iter = packetVec.begin(); iter != packetVec.end(); iter++)
-        {
-            // parse raw packet
-            pcpp::Packet parsedPacket(*iter);
-
-            // feed packet to the stats object
-            statsExec.consumePacket(parsedPacket);
-        }
-        vector<pair<string, int>> protStats;
-        TypeCounts typeStats = statsExec.getPacketTypeCounts();
-        protStats.push_back(make_pair("time", time));
-        time+=1000;
-        protStats.push_back(make_pair("ETH", typeStats.ethPacketCount));
-        protStats.push_back(make_pair("IPV4", typeStats.ipv4PacketCount));
-        protStats.push_back(make_pair("IPV6", typeStats.ipv6PacketCount));
-        protStats.push_back(make_pair("UDP", typeStats.udpPacketCount));
-        protStats.push_back(make_pair("TCP", typeStats.tcpPacketCount));
-        protStats.push_back(make_pair("DNS", typeStats.dnsPacketCount));
-        protStats.push_back(make_pair("HTTP", typeStats.httpPacketCount));
-        protStats.push_back(make_pair("SSL", typeStats.sslPacketCount));
-
-        protStatsList.push_back(protStats);
-        if(protStatsList.size() > 6)
-        {
-            protStatsList.erase(protStatsList.begin());
-        }
     }
-
-    
 	// stop capturing packets
 	dev->stopCapture();
 }
