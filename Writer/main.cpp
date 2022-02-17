@@ -59,7 +59,8 @@ using namespace http::experimental::listener;
 #define TRACE_ACTION(a, k, v) wcout << a << L" (" << k << L", " << v << L")\n"
 using namespace std;
 
-pcpp::Packet * packet; // packet being served
+pcpp::Packet * glbPacket = nullptr; // packet being served
+long unsigned int globId = 0;
 
 std::string getListenIp()
 {
@@ -114,17 +115,24 @@ void handle_get(http_request request)
 
     /* create json packet structure */
     json::value retPacket;
+    pcpp::Layer* pitr = nullptr;
     //iterate over layers creating object of form L1: ETH L2: 
     //get first layer of packet
-    pcpp::Layer* pitr = packet.getLayerOfType(pcpp::Ethernet);
+    if(glbPacket != nullptr){
+        pitr = glbPacket->getFirstLayer();
+    }
+    
     //https://stackoverflow.com/questions/44597525/cpp-rest-sdk-json-how-to-create-json-w-array-and-write-to-file
     if(pitr != nullptr){
-        
+        retPacket["id"] = globId;
+        globId++;
         while(pitr != nullptr){
-            retPacket[std::to_string(pitr->getProtocol())] = 
+            // cout<<std::to_string(pitr->getProtocol())<<"\n";
+            retPacket[std::to_string(pitr->getOsiModelLayer())] = 
                 json::value::string(pitr->toString());
             pitr = pitr->getNextLayer();
         }
+        // display_json(retPacket, "");
     }
 
     
@@ -156,9 +164,13 @@ void *jsonServer(void *param){
 
 static void onPacketArrives(pcpp::RawPacket* packet, pcpp::PcapLiveDevice* dev, void* cookie)
 {
-    // delete (pcpp::RawPacket*)cookie;
-    pcpp::RawPacket * glb = (pcpp::RawPacket *)cookie;
-    *glb = *packet; // assign packet to global ret
+
+    if (glbPacket != nullptr){ // delete last packet -- 
+        delete glbPacket; 
+    }
+
+    glbPacket = new pcpp::Packet(packet); //new packet out of raw packet
+    // cout<<glb->toString(true);
 }
 
 int main(int argc, char* argv[])
@@ -201,7 +213,7 @@ int main(int argc, char* argv[])
 	pcpp::RawPacketVector packetVec;
 	// start capturing packets. All packets will be added to the packet vector
     
-	dev->startCapture(onPacketArrives, &packet);
+	dev->startCapture(onPacketArrives, nullptr);
     while(1){
         sleep(5);
     }
