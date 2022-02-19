@@ -128,7 +128,7 @@ void handle_get(http_request request)
         globId++;
         while(pitr != nullptr){
             // cout<<std::to_string(pitr->getProtocol())<<"\n";
-            retPacket[std::to_string(pitr->getOsiModelLayer())] = 
+            retPacket["packet"][std::to_string(pitr->getOsiModelLayer())] = 
                 json::value::string(pitr->toString());
             pitr = pitr->getNextLayer();
         }
