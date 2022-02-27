@@ -38,30 +38,41 @@
 
 #include "stdlib.h"
 #include "PcapLiveDeviceList.h"
+#include "PcapFileDevice.h"
 
-#pragma warning ( push )
-#pragma warning ( disable : 4457 )
-#pragma warning ( pop )
 #include <locale>
 #include <ctime>
 #include <vector>
-/*
-*Listens on eth0 for a given interval 
-*Stores packet data in PacketStats Structure
-*/
+#include <iostream>
+#include <list>
+#define PCAP_FILE "simData.pcap"
+
 using namespace std;
 using namespace web;
 using namespace http;
 using namespace utility;
 using namespace http::experimental::listener;
-
-#define TRACE(msg)            wcout << msg
-#define TRACE_ACTION(a, k, v) wcout << a << L" (" << k << L", " << v << L")\n"
 using namespace std;
 
 pcpp::Packet * glbPacket = nullptr; // packet being served
-long unsigned int globId = 0;
 
+std::list<pcpp::Packet*> recList;
+long unsigned int globId = 0;
+long unsigned int pktCtr = 0;
+
+pcpp::IFileReaderDevice* reader ; //global reader
+
+pcpp::Packet * getSim(){
+    if (!reader->open())
+	{
+        return nullptr;
+    }else{
+        pcpp::RawPacket rawPacket;
+	    reader->getNextPacket(rawPacket);
+        globId++;
+        return new pcpp::Packet(&rawPacket);
+    }
+}
 std::string getListenIp()
 {
     int fd;
@@ -96,62 +107,66 @@ void handle_get(http_request request)
 {
     http_response response(status_codes::OK);
     
-    
-    // json::value timeSeries;
-    // int ctr=0;
-    // for (auto time : protStatsList){
-    //     //TRACE(L"\npush time object\n");
-    //     timeSeries["PacketStats"][ctr][time[0].first] = json::value::number(time[0].second);
-    //     timeSeries["PacketStats"][ctr][time[1].first] = json::value::number(time[1].second);
-    //     timeSeries["PacketStats"][ctr][time[2].first] = json::value::number(time[2].second);
-    //     timeSeries["PacketStats"][ctr][time[3].first] = json::value::number(time[3].second);
-    //     timeSeries["PacketStats"][ctr][time[4].first] = json::value::number(time[4].second);
-    //     timeSeries["PacketStats"][ctr][time[5].first] = json::value::number(time[5].second);
-    //     timeSeries["PacketStats"][ctr][time[6].first] = json::value::number(time[6].second);
-    //     timeSeries["PacketStats"][ctr][time[7].first] = json::value::number(time[7].second);
-    //     timeSeries["PacketStats"][ctr][time[8].first] = json::value::number(time[8].second);
-    //     ctr++;
-    // }
 
     /* create json packet structure */
     json::value retPacket;
     pcpp::Layer* pitr = nullptr;
-    //iterate over layers creating object of form L1: ETH L2: 
-    //get first layer of packet
-    if(glbPacket != nullptr){
-        pitr = glbPacket->getFirstLayer();
-    }
+    pcpp::Packet * pkt = nullptr;
+    int itr = 0;
     
-    //https://stackoverflow.com/questions/44597525/cpp-rest-sdk-json-how-to-create-json-w-array-and-write-to-file
-    if(pitr != nullptr){
-        retPacket["id"] = globId;
-        globId++;
-        while(pitr != nullptr){
-            // cout<<std::to_string(pitr->getProtocol())<<"\n";
-            retPacket["packet"][std::to_string(pitr->getOsiModelLayer())] = 
-                json::value::string(pitr->toString());
-            pitr = pitr->getNextLayer();
+    if(request.headers().has("Content-Type")){//simulated
+        //return a simulated data packet
+        pkt = getSim();
+        retPacket["id"] = globId;//return ctr of num sim requests
+        if(pkt!=nullptr){
+            pitr = pkt->getFirstLayer();
+            while(pitr != nullptr){
+                retPacket["packetList"][itr]["packet"][std::to_string(pitr->getOsiModelLayer())] = 
+                    json::value::string(pitr->toString());
+                pitr = pitr->getNextLayer();
+            }
         }
-        // display_json(retPacket, "");
+        response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
+        response.set_body(retPacket);
+        request.reply(response);
+        return;
     }
 
-    
+
+    if(pkt != nullptr){        
+        
+        pitr = pkt->getFirstLayer();
+        
+        while(recList.size() > 0){//live list case
+            while(pitr != nullptr){
+                retPacket["packetList"][itr]["packet"][std::to_string(pitr->getOsiModelLayer())] = 
+                    json::value::string(pitr->toString());
+                pitr = pitr->getNextLayer();
+            }
+            delete recList.front();
+            recList.pop_front();
+            itr++;
+        }
+        
+    }
     response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
+    // display_json( retPacket, json::value::string(""));
     response.set_body(retPacket);
     request.reply(response);
+    //https://stackoverflow.com/questions/44597525/cpp-rest-sdk-json-how-to-create-json-w-array-and-write-to-file
+    
     
   
 }
 void *jsonServer(void *param){
     http_listener listener("http://localhost:5000");
     listener.support(methods::GET, handle_get);
-    // listener.support(methods::POST, handle_post);
     listener.support(methods::OPTIONS, handle_options);
     try
     {
         listener
             .open()
-            .then([&listener](){TRACE(L"\nstarting to listen\n");})
+            .then([&listener](){wcout << (L"\nstarting to listen\n");})
             .wait();
 
         while (true);
@@ -165,12 +180,37 @@ void *jsonServer(void *param){
 static void onPacketArrives(pcpp::RawPacket* packet, pcpp::PcapLiveDevice* dev, void* cookie)
 {
 
-    if (glbPacket != nullptr){ // delete last packet -- 
-        delete glbPacket; 
-    }
+    // if (glbPacket != nullptr){ // delete last packet -- 
+    //     delete glbPacket; 
+    // }
+    // pktCtr++;
+    // glbPacket = new pcpp::Packet(packet); //new packet out of raw packet
+    recList.push_back(new pcpp::Packet(packet));
+    pktCtr++;
+}
 
-    glbPacket = new pcpp::Packet(packet); //new packet out of raw packet
-    // cout<<glb->toString(true);
+bool devValid(pcpp::PcapLiveDevice* dev, std::string interfaceIPAddr){
+    if (dev == NULL)
+	{
+		std::cerr << "Cannot find interface with IPv4 address of '" << interfaceIPAddr << "'" << std::endl;
+		return false;
+	}
+	std::cout
+    << "Interface info:" << std::endl
+    << "   Interface name:        " << dev->getName() << std::endl // get interface name
+    << "   Interface description: " << dev->getDesc() << std::endl // get interface description
+    << "   MAC address:           " << dev->getMacAddress() << std::endl // get interface MAC address
+    << "   Default gateway:       " << dev->getDefaultGateway() << std::endl // get default gateway
+    << "   Interface MTU:         " << dev->getMtu() << std::endl; // get interface MTU
+
+	if (dev->getDnsServers().size() > 0)
+		std::cout << "   DNS server:            " << dev->getDnsServers().at(0) << std::endl;
+	if (!dev->open())
+	{
+		std::cerr << "Cannot open device" << std::endl;
+		return false;
+	}
+    return true;
 }
 
 int main(int argc, char* argv[])
@@ -187,31 +227,13 @@ int main(int argc, char* argv[])
     /* create stats executive object */
     StatsExecutive statsExec;
 
-	pcpp::PcapLiveDevice* dev = pcpp::PcapLiveDeviceList::getInstance().getPcapLiveDeviceByIp(interfaceIPAddr);
-	if (dev == NULL)
-	{
-		std::cerr << "Cannot find interface with IPv4 address of '" << interfaceIPAddr << "'" << std::endl;
-		return 1;
-	}
-	std::cout
-    << "Interface info:" << std::endl
-    << "   Interface name:        " << dev->getName() << std::endl // get interface name
-    << "   Interface description: " << dev->getDesc() << std::endl // get interface description
-    << "   MAC address:           " << dev->getMacAddress() << std::endl // get interface MAC address
-    << "   Default gateway:       " << dev->getDefaultGateway() << std::endl // get default gateway
-    << "   Interface MTU:         " << dev->getMtu() << std::endl; // get interface MTU
+    /*global pcap reader opens file */
+    reader = pcpp::IFileReaderDevice::getReader(PCAP_FILE);
 
-	if (dev->getDnsServers().size() > 0)
-		std::cout << "   DNS server:            " << dev->getDnsServers().at(0) << std::endl;
-	if (!dev->open())
-	{
-		std::cerr << "Cannot open device" << std::endl;
-		return 1;
-	}
-    
-    /*Pcap device thread*/
-	pcpp::RawPacketVector packetVec;
-	// start capturing packets. All packets will be added to the packet vector
+	pcpp::PcapLiveDevice* dev = pcpp::PcapLiveDeviceList::getInstance().getPcapLiveDeviceByIp(interfaceIPAddr);
+	if(!devValid(dev, interfaceIPAddr)){
+        return 1;
+    }
     
 	dev->startCapture(onPacketArrives, nullptr);
     while(1){
