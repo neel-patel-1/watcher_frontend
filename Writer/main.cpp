@@ -45,6 +45,8 @@
 #include <vector>
 #include <iostream>
 #include <list>
+#include <cstdlib>
+#include <cassert>
 #define PCAP_FILE "simData.pcap"
 
 using namespace std;
@@ -56,21 +58,24 @@ using namespace std;
 
 pcpp::Packet * glbPacket = nullptr; // packet being served
 
-std::list<pcpp::Packet*> recList;
+std::list<pcpp::Packet*> liveList;
+std::list<pcpp::Packet*> simList;
 long unsigned int globId = 0;
 long unsigned int pktCtr = 0;
 
 pcpp::IFileReaderDevice* reader ; //global reader
 
 pcpp::Packet * getSim(){
-    if (!reader->open())
-	{
-        return nullptr;
-    }else{
-        pcpp::RawPacket rawPacket;
-	    reader->getNextPacket(rawPacket);
-        globId++;
-        return new pcpp::Packet(&rawPacket);
+    if(reader != nullptr){
+        if (!reader->open())
+        {
+            return nullptr;
+        }else{
+            pcpp::RawPacket rawPacket;
+            reader->getNextPacket(rawPacket);
+            globId++;
+            return new pcpp::Packet(&rawPacket);
+        }
     }
 }
 std::string getListenIp()
@@ -107,7 +112,6 @@ void handle_get(http_request request)
 {
     http_response response(status_codes::OK);
     
-
     /* create json packet structure */
     json::value retPacket;
     pcpp::Layer* pitr = nullptr;
@@ -115,48 +119,47 @@ void handle_get(http_request request)
     int itr = 0;
     
     if(request.headers().has("Content-Type")){//simulated
-        //return a simulated data packet
-        pkt = getSim();
+        //return multiple simulated data packets
+        do{
+            pkt = getSim();
+            simList.push_back(pkt);
+        } while( (rand() % 10) < 5 );
+        assert(simList.front() != nullptr);
         retPacket["id"] = globId;//return ctr of num sim requests
-        if(pkt!=nullptr){
-            pitr = pkt->getFirstLayer();
+        while(simList.size() > 0){//live list case
+            pitr = simList.front()->getFirstLayer();
             while(pitr != nullptr){
                 retPacket["packetList"][itr]["packet"][std::to_string(pitr->getOsiModelLayer())] = 
                     json::value::string(pitr->toString());
                 pitr = pitr->getNextLayer();
             }
-        }
-        response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
-        response.set_body(retPacket);
-        request.reply(response);
-        return;
-    }
-
-
-    if(pkt != nullptr){        
-        
-        pitr = pkt->getFirstLayer();
-        
-        while(recList.size() > 0){//live list case
-            while(pitr != nullptr){
-                retPacket["packetList"][itr]["packet"][std::to_string(pitr->getOsiModelLayer())] = 
-                    json::value::string(pitr->toString());
-                pitr = pitr->getNextLayer();
+            if(simList.front() != nullptr){
+                delete simList.front();
             }
-            delete recList.front();
-            recList.pop_front();
+            simList.pop_front();
             itr++;
         }
-        
+    }else{      
+        retPacket["id"] = pktCtr;
+        while(liveList.size() > 0){//live list case
+            pitr = liveList.front()->getFirstLayer();
+            while(pitr != nullptr){
+                retPacket["packetList"][itr]["packet"][std::to_string(pitr->getOsiModelLayer())] = 
+                    json::value::string(pitr->toString());
+                pitr = pitr->getNextLayer();
+            }
+            if(liveList.front() != nullptr){
+                delete liveList.front();
+            }
+            liveList.pop_front();
+            itr++;
+        }
     }
     response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
     // display_json( retPacket, json::value::string(""));
     response.set_body(retPacket);
     request.reply(response);
     //https://stackoverflow.com/questions/44597525/cpp-rest-sdk-json-how-to-create-json-w-array-and-write-to-file
-    
-    
-  
 }
 void *jsonServer(void *param){
     http_listener listener("http://localhost:5000");
@@ -185,7 +188,7 @@ static void onPacketArrives(pcpp::RawPacket* packet, pcpp::PcapLiveDevice* dev, 
     // }
     // pktCtr++;
     // glbPacket = new pcpp::Packet(packet); //new packet out of raw packet
-    recList.push_back(new pcpp::Packet(packet));
+    liveList.push_back(new pcpp::Packet(packet));
     pktCtr++;
 }
 
