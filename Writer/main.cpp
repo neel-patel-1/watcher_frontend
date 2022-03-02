@@ -58,13 +58,13 @@ using namespace std;
 
 pcpp::Packet * glbPacket = nullptr; // packet being served
 
-std::list<pcpp::Packet*> liveList;
-std::list<pcpp::Packet*> simList;
+
+
 long unsigned int globId = 0;
 long unsigned int pktCtr = 0;
 
 pcpp::IFileReaderDevice* reader ; //global reader
-
+std::list<pcpp::Packet*> liveList;  
 pcpp::Packet * getSim(){
     if(reader != nullptr){
         if (!reader->open())
@@ -120,6 +120,7 @@ void handle_get(http_request request)
     
     if(request.headers().has("Content-Type")){//simulated
         //return multiple simulated data packets
+        std::list<pcpp::Packet*> simList;
         do{
             pkt = getSim();
             simList.push_back(pkt);
@@ -129,17 +130,20 @@ void handle_get(http_request request)
         while(simList.size() > 0){//live list case
             pitr = simList.front()->getFirstLayer();
             while(pitr != nullptr){
+                
                 retPacket["packetList"][itr]["packet"][std::to_string(pitr->getOsiModelLayer())] = 
                     json::value::string(pitr->toString());
+                // if(pitr->getProtocol() == pcpp::GenericPayload){
+                //     std::cout << (char *)(pitr->getLayerPayload()) << "\n";
+                // }
                 pitr = pitr->getNextLayer();
             }
-            if(simList.front() != nullptr){
-                delete simList.front();
-            }
+            assert(simList.front() != nullptr); // simList should never hold null
             simList.pop_front();
             itr++;
         }
-    }else{      
+    }else{   
+         
         retPacket["id"] = pktCtr;
         while(liveList.size() > 0){//live list case
             pitr = liveList.front()->getFirstLayer();
@@ -155,6 +159,7 @@ void handle_get(http_request request)
             itr++;
         }
     }
+
     response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
     // display_json( retPacket, json::value::string(""));
     response.set_body(retPacket);
