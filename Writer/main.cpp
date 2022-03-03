@@ -48,6 +48,7 @@
 #include <cstdlib>
 #include <cassert>
 #define PCAP_FILE "simData.pcap"
+#define PLOAD_MAX_BUF 1448
 
 using namespace std;
 using namespace web;
@@ -58,7 +59,8 @@ using namespace std;
 
 pcpp::Packet * glbPacket = nullptr; // packet being served
 
-
+size_t ploadSize;
+char * ploadBuf = (char *)malloc(PLOAD_MAX_BUF * sizeof(char));
 
 long unsigned int globId = 0;
 long unsigned int pktCtr = 0;
@@ -133,9 +135,10 @@ void handle_get(http_request request)
                 
                 retPacket["packetList"][itr]["packet"][std::to_string(pitr->getOsiModelLayer())] = 
                     json::value::string(pitr->toString());
-                // if(pitr->getProtocol() == pcpp::GenericPayload){
-                //     std::cout << (char *)(pitr->getLayerPayload()) << "\n";
-                // }
+                if(pitr->getProtocol() == pcpp::GenericPayload && pitr->getLayerPayloadSize() < PLOAD_MAX_BUF){
+                    // memcpy(ploadBuf, pitr->getLayerPayload(), PLOAD_MAX_BUF);
+                    // std::cout << std::string(ploadBuf) << "\n";
+                }
                 pitr = pitr->getNextLayer();
             }
             assert(simList.front() != nullptr); // simList should never hold null
